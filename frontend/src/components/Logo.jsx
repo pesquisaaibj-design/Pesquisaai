@@ -12,7 +12,7 @@ export function Logo({ size = 28, withText = true, className = "" }) {
         <Search size={size} strokeWidth={2.6} color="#FF5A00" />
       </span>
       {withText && (
-        <span className="font-display font-extrabold tracking-tight text-[#111111]">
+        <span className="font-display font-semibold tracking-tight text-[#111111]">
           Pesquisa<span className="text-[#FF5A00]">Aí</span>
         </span>
       )}

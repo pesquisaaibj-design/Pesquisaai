@@ -25,10 +25,10 @@ export default function Home() {
             <Search size={44} strokeWidth={2.6} color="#FF5A00" />
           </div>
 
-          <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-[#111111] sm:text-5xl">
+          <h1 className="font-display text-4xl font-semibold leading-none tracking-tight text-[#111111] sm:text-5xl">
             Pesquisa<span className="text-[#FF5A00]">Aí</span>
           </h1>
-          <p className="mt-3 text-base font-medium text-[#525252] sm:text-lg">
+          <p className="mt-3 text-base font-normal text-[#525252] sm:text-lg">
             Pesquisou. Achou. Acabou.
           </p>
 

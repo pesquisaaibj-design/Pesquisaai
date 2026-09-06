@@ -22,7 +22,6 @@ MVP funcional e responsivo da plataforma PesquisaAí (Belo Jardim - PE). Platafo
 - Mobile-first, laranja #FF5A00 sobre branco, sem fotos de produto.
 
 ## Implementado (2026-06)
-- Homepage minimalista com busca central + lupa laranja.
 - Resultados de busca com cards (nome, categoria, chips de produtos, botões de contato).
 - Página individual da loja com produtos e informações.
 - WhatsApp com mensagem automática codificada incluindo o termo pesquisado.
@@ -30,7 +29,11 @@ MVP funcional e responsivo da plataforma PesquisaAí (Belo Jardim - PE). Platafo
 - Painel admin: login JWT + criar/editar/excluir loja, definir parceira, editar produtos.
 - 4 lojas seedadas (REKILDER MODAS, ATM MAGAZINE, GALLEGA MODAS, ESCANDAL) com campos de contato vazios (não inventados).
 - Testado: 15/15 backend + fluxos frontend OK.
+- (Iteração 2) Foto da fachada por loja via Emergent Object Storage (upload/troca/remoção no /admin; exibida na página da loja e miniatura no card; sem fotos de produto).
+- (Iteração 2) Botão "Como chegar" só aparece quando há maps_url ou endereço/bairro.
+- (Iteração 2) Tipografia mais leve (Quicksand no nome/títulos, DM Sans no corpo).
+- (Iteração 2) Testado: 19/19 backend + fluxos frontend OK; 4 lojas preservadas.
 
 ## Backlog (P1/P2)
-- P1: Migrar on_event para lifespan; PUT admin com $set parcial.
+- P1: Migrar on_event para lifespan; PUT admin com $set parcial; soft-delete/limpeza de fotos órfãs no storage.
 - P2: Rate-limit/lockout no login; ordenar/filtrar lojas no admin; sinônimos de busca ampliados.

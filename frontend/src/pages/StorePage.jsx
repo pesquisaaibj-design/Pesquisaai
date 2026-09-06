@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { MessageCircle, Instagram, MapPin, Clock, ArrowLeft, Facebook, Music2 } from "lucide-react";
-import { api, buildWhatsappLink, buildMapsLink, buildInstagramLink } from "@/lib/api";
+import { api, buildWhatsappLink, buildMapsLink, buildInstagramLink, photoSrc } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { PartnerBadge } from "@/components/StoreCard";
 
@@ -48,11 +48,24 @@ export default function StorePage() {
       </header>
 
       <main className="fade-in mx-auto max-w-2xl px-5 py-8">
+        {store.photo_url && (
+          <div
+            data-testid="store-photo"
+            className="mb-6 overflow-hidden rounded-2xl border border-gray-200"
+          >
+            <img
+              src={photoSrc(store.photo_url)}
+              alt={`Fachada da ${store.name}`}
+              className="h-52 w-full object-cover sm:h-64"
+            />
+          </div>
+        )}
+
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1
               data-testid="store-name"
-              className="font-display text-3xl font-extrabold tracking-tight text-[#111111]"
+              className="font-display text-3xl font-semibold tracking-tight text-[#111111]"
             >
               {store.name}
             </h1>
@@ -89,15 +102,17 @@ export default function StorePage() {
               <Instagram size={17} /> Instagram
             </a>
           )}
-          <a
-            data-testid="store-maps-button"
-            href={buildMapsLink(store)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-[#111111] transition-colors hover:bg-[#FAFAFA]"
-          >
-            <MapPin size={17} /> Como chegar
-          </a>
+          {(store.maps_url || store.address || store.neighborhood) && (
+            <a
+              data-testid="store-maps-button"
+              href={buildMapsLink(store)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-[#111111] transition-colors hover:bg-[#FAFAFA]"
+            >
+              <MapPin size={17} /> Como chegar
+            </a>
+          )}
           {store.facebook && (
             <a
               data-testid="store-facebook-button"

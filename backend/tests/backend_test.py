@@ -168,3 +168,70 @@ class TestAdminCRUD:
         r = session.get(f"{API}/stores")
         names = {s["name"] for s in r.json()}
         assert EXPECTED_STORES.issubset(names)
+
+
+# ---------- Upload / files ----------
+PNG_1x1 = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0"
+    b"\x00\x00\x00\x03\x00\x01\x5c\xcd\xff\x69\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+class TestUpload:
+    def test_upload_requires_auth(self):
+        r = requests.post(f"{API}/admin/upload", files={"file": ("a.png", PNG_1x1, "image/png")})
+        assert r.status_code == 401
+
+    def test_upload_png_and_serve(self, token):
+        headers = {"Authorization": f"Bearer {token}"}
+        r = requests.post(f"{API}/admin/upload", files={"file": ("t.png", PNG_1x1, "image/png")}, headers=headers)
+        assert r.status_code == 200, r.text
+        url = r.json()["url"]
+        assert url.startswith("/api/files/")
+        # Serve
+        r2 = requests.get(f"{BASE_URL}{url}")
+        assert r2.status_code == 200
+        assert "image" in r2.headers.get("Content-Type", "")
+        assert len(r2.content) > 0
+
+    def test_upload_rejects_non_image(self, token):
+        headers = {"Authorization": f"Bearer {token}"}
+        r = requests.post(f"{API}/admin/upload", files={"file": ("t.txt", b"hello", "text/plain")}, headers=headers)
+        assert r.status_code == 400
+
+
+# ---------- photo_url field on Store ----------
+class TestStorePhotoUrl:
+    def test_create_update_delete_with_photo_url(self, token):
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        payload = {"name": "TEST_PHOTO_STORE", "photo_url": "/api/files/some/path.png"}
+        r = requests.post(f"{API}/admin/stores", json=payload, headers=headers)
+        assert r.status_code == 200
+        created = r.json()
+        sid = created["id"]
+        assert created["photo_url"] == "/api/files/some/path.png"
+
+        # GET verifies persistence
+        r_get = requests.get(f"{API}/stores/{sid}")
+        assert r_get.json()["photo_url"] == "/api/files/some/path.png"
+
+        # Update photo_url + partner
+        upd = {"name": "TEST_PHOTO_STORE", "photo_url": "/api/files/other.png", "isPartner": True}
+        r_upd = requests.put(f"{API}/admin/stores/{sid}", json=upd, headers=headers)
+        assert r_upd.status_code == 200
+        assert r_upd.json()["photo_url"] == "/api/files/other.png"
+        assert r_upd.json()["isPartner"] is True
+
+        r_get2 = requests.get(f"{API}/stores/{sid}")
+        assert r_get2.json()["photo_url"] == "/api/files/other.png"
+
+        # Delete
+        r_del = requests.delete(f"{API}/admin/stores/{sid}", headers=headers)
+        assert r_del.status_code == 200
+
+        # 4 seeded remain
+        r_all = requests.get(f"{API}/stores")
+        names = {s["name"] for s in r_all.json()}
+        assert EXPECTED_STORES.issubset(names)
+        assert "TEST_PHOTO_STORE" not in names

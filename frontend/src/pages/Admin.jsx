@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, photoSrc } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, LogOut, Star, X, Save, Search,
+  Plus, Pencil, Trash2, LogOut, Star, X, Save, Search, ImageIcon, Upload, Loader2,
 } from "lucide-react";
 
 function LoginView({ onLogin }) {
@@ -69,7 +69,7 @@ function LoginView({ onLogin }) {
 const EMPTY = {
   name: "", description: "", category: "", address: "", neighborhood: "",
   city: "Belo Jardim - PE", whatsapp: "", instagram: "", facebook: "",
-  tiktok: "", maps_url: "", hours: "", isPartner: false, products: [],
+  tiktok: "", maps_url: "", hours: "", isPartner: false, photo_url: "", products: [],
 };
 
 function StoreForm({ initial, onClose, onSaved }) {
@@ -78,8 +78,29 @@ function StoreForm({ initial, onClose, onSaved }) {
     (initial?.products || []).map((p) => p.name).join("\n")
   );
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const uploadPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const { data } = await api.post("/admin/upload", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setForm((f) => ({ ...f, photo_url: data.url }));
+      toast.success("Foto enviada");
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Erro ao enviar foto");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = async () => {
     if (!form.name.trim()) { toast.error("Nome da loja é obrigatório"); return; }
@@ -136,6 +157,43 @@ function StoreForm({ initial, onClose, onSaved }) {
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-semibold text-[#525252]">Foto da fachada</label>
+            <div className="mt-2 flex items-center gap-4">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-[#FAFAFA]">
+                {form.photo_url ? (
+                  <img
+                    data-testid="store-form-photo-preview"
+                    src={photoSrc(form.photo_url)}
+                    alt="Fachada"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ImageIcon size={28} className="text-gray-300" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label
+                  data-testid="store-form-photo-upload"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#FAFAFA]"
+                >
+                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {form.photo_url ? "Trocar foto" : "Enviar foto"}
+                  <input type="file" accept="image/*" onChange={uploadPhoto} className="hidden" disabled={uploading} />
+                </label>
+                {form.photo_url && (
+                  <button
+                    type="button"
+                    data-testid="store-form-photo-remove"
+                    onClick={() => setForm((f) => ({ ...f, photo_url: "" }))}
+                    className="text-left text-xs font-medium text-red-500"
+                  >
+                    Remover foto
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           {field("Nome *", "name")}
           {field("Categoria / posicionamento", "category")}
           <div className="sm:col-span-2">

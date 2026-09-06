@@ -1,6 +1,6 @@
 import { MessageCircle, Instagram, MapPin, Star } from "lucide-react";
 import { Link } from "react-router-dom";
-import { buildWhatsappLink, buildMapsLink, buildInstagramLink } from "@/lib/api";
+import { buildWhatsappLink, buildMapsLink, buildInstagramLink, photoSrc } from "@/lib/api";
 
 export function PartnerBadge() {
   return (
@@ -23,15 +23,27 @@ export function StoreCard({ store, query = "" }) {
       className="fade-in rounded-2xl border border-gray-200 bg-white p-5 transition-transform duration-200 active:scale-[0.99] hover:shadow-[0_8px_30px_rgb(0,0,0,0.05)] sm:p-6"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <Link to={`/loja/${store.id}`} data-testid="store-card-name-link">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-[#111111] sm:text-2xl hover:text-[#FF5A00] transition-colors">
-              {store.name}
-            </h2>
-          </Link>
-          {store.category && (
-            <p className="mt-0.5 text-sm text-[#525252]">{store.category}</p>
+        <div className="flex items-start gap-3">
+          {store.photo_url && (
+            <Link to={`/loja/${store.id}`} className="shrink-0">
+              <img
+                data-testid="store-card-photo"
+                src={photoSrc(store.photo_url)}
+                alt={store.name}
+                className="h-14 w-14 rounded-xl object-cover border border-gray-200"
+              />
+            </Link>
           )}
+          <div>
+            <Link to={`/loja/${store.id}`} data-testid="store-card-name-link">
+              <h2 className="font-display text-xl font-semibold tracking-tight text-[#111111] sm:text-2xl hover:text-[#FF5A00] transition-colors">
+                {store.name}
+              </h2>
+            </Link>
+            {store.category && (
+              <p className="mt-0.5 text-sm text-[#525252]">{store.category}</p>
+            )}
+          </div>
         </div>
         {store.isPartner && <PartnerBadge />}
       </div>
@@ -84,15 +96,17 @@ export function StoreCard({ store, query = "" }) {
             <Instagram size={16} /> Instagram
           </a>
         )}
-        <a
-          data-testid="store-card-maps-button"
-          href={buildMapsLink(store)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-[#111111] transition-colors hover:bg-[#FAFAFA]"
-        >
-          <MapPin size={16} /> Como chegar
-        </a>
+        {(store.maps_url || store.address || store.neighborhood) && (
+          <a
+            data-testid="store-card-maps-button"
+            href={buildMapsLink(store)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-[#111111] transition-colors hover:bg-[#FAFAFA]"
+          >
+            <MapPin size={16} /> Como chegar
+          </a>
+        )}
       </div>
     </div>
   );

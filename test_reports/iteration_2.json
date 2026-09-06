@@ -1,0 +1,25 @@
+{
+  "summary": "Follow-up iteration for facade photo upload + gated Maps button + admin CRUD persistence. Extended pytest suite from 15 to 19 tests: added TestUpload (auth-required, PNG upload + /api/files serve returns 200 image/*, non-image .txt returns 400) and TestStorePhotoUrl (create/update/delete persists photo_url + isPartner toggle; 4 seeded stores intact after). All 19 backend tests PASS. Frontend Playwright: /admin login OK → dashboard lists 4 stores → edited REKILDER MODAS in modal (uploaded 1x1 PNG via store-form-photo-upload → store-form-photo-preview appeared with /api/files/... URL, store-form-photo-remove visible; filled whatsapp/address/neighborhood/hours) → Save → reopened form and values persisted → public /loja/{id} shows store-photo, store-whatsapp-button, store-maps-button → /buscar?q=short praia card shows store-card-photo + store-card-whatsapp-button + store-card-maps-button. Cleanup executed: cleared fields + removed photo; verified via GET /api/stores that REKILDER photo_url/whatsapp/address/neighborhood/hours are all empty; re-verified card no longer shows maps/whatsapp/photo (gating works). Seeded 4 stores intact.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py PUT /api/admin/stores/{id} still uses full replace_one — any DB-only fields would be dropped; acceptable while StoreInput mirrors Store, but future-proof with $set on validated dict.",
+    "Uploaded object files are never actually deleted from Emergent object storage when a store's photo is replaced/removed or the store is deleted — /admin only sets photo_url='' locally; db.files entries remain and objects orphan. Consider soft-delete + cleanup task.",
+    "MIME validation is by file extension only; malicious content with .png extension would pass. Not blocking for MVP but consider magic-byte sniffing.",
+    "photoSrc() concatenation assumes photo_url starts with '/'; safe today because backend returns '/api/files/...' but add a leading-slash guard for defensive coding.",
+    "Still on deprecated FastAPI @app.on_event startup handlers (carry-over from iteration_1)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": { "backend": "100% (19/19)", "frontend": "100%" },
+  "test_credentials": "Admin: lucas.lucenacs22@gmail.com / Luc@s1103445 (verified via /api/auth/login)",
+  "seed_data_creation": "None persisted. During test: created TEST_STORE_CRUD + TEST_PHOTO_STORE via API (both deleted), and temporarily edited REKILDER MODAS in UI (uploaded photo + set whatsapp/address/neighborhood/hours) — fully reverted at end of run; verified all fields empty and photo_url='' via GET /api/stores.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite at /app/backend/tests/backend_test.py covers stores, search, auth, admin CRUD, upload+serve, and photo_url persistence. Object storage uploads leave orphan files/db.files rows even after cleanup — not asserted. Home page ('/') does NOT auto-run search from ?q= — search only runs on /buscar?q=. Seeded 4 stores intentionally have empty whatsapp/address/maps_url so contact buttons are hidden by design.",
+  "rca of the issue": "N/A — no issues found."
+}
