@@ -1,0 +1,73 @@
+{
+  "theme": "Light mode only (per explicit user instruction 'Fundo branco').",
+  "typography": {
+    "primary_heading": "Outfit",
+    "secondary_body": "DM Sans",
+    "rules": [
+      "BANNED: Inter for headings. Use Outfit with tracking-tight (-0.02em) for all headings to give a modern, authoritative directory feel.",
+      "Body text must be DM Sans, starting at text-base for maximum mobile legibility.",
+      "H1 Size: text-4xl sm:text-5xl tracking-tight leading-none.",
+      "Store Names (H2): text-xl sm:text-2xl font-semibold tracking-tight."
+    ]
+  },
+  "colors": {
+    "primary": "#FF5A00",
+    "primary_hover": "#E04F00",
+    "primary_light": "#FFF0E5",
+    "background": "#FFFFFF",
+    "surface": "#FAFAFA",
+    "text_primary": "#111111",
+    "text_secondary": "#525252",
+    "border": "#E5E5E5",
+    "success_whatsapp": "#25D366",
+    "instagram_gradient": "bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]"
+  },
+  "grids_and_layouts": {
+    "global": "Mobile-first absolute priority. On desktop, constrain the main layout to max-w-2xl or max-w-3xl to maintain the tight, focused search experience.",
+    "spacing_system": "Use generous padding. Standard card internal padding is p-6. Main section gaps are gap-8.",
+    "search_hero": "Flex column, items-center, justify-center, min-h-[70vh]. Everything center-aligned ONLY on the homepage.",
+    "results_feed": "grid grid-cols-1 gap-4. Content inside cards must be left-aligned for scannability."
+  },
+  "components": {
+    "search_input": "Massive input. h-16 or h-20, text-lg, rounded-2xl or rounded-full, border-2 border-gray-200 focus:border-[#FF5A00] focus:ring-0. Left icon: Large orange magnifying glass.",
+    "store_card": "Cardless/Flat approach with 1px border. bg-white border border-gray-200 rounded-2xl p-5 sm:p-6. No heavy shadows, maybe shadow-sm on hover. Left-aligned content.",
+    "badges": "Selo Parceiro: bg-[#FFF0E5] text-[#FF5A00] text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.",
+    "buttons": "Smooth rounded-xl or rounded-full. Primary search button is bold Orange. Contact buttons use brand colors (WhatsApp green, Instagram gradient) or minimal gray outlines for 'Como chegar'."
+  },
+  "visual_enhancers": {
+    "icons": "Use lucide-react. The logo is a Lucide 'Search' icon, size 48px or 64px, color #FF5A00, raw on the white background.",
+    "borders": "Ultra-crisp 1px borders (border-gray-200).",
+    "shadows": "Keep it flat. Only use soft ambient shadows (shadow-[0_8px_30px_rgb(0,0,0,0.04)]) for sticky headers or modals."
+  },
+  "motion": {
+    "interactions": "Native mobile feel. active:scale-[0.98] on all buttons and cards. transition-transform duration-200.",
+    "page_load": "Subtle fade-in for search results."
+  },
+  "accessibility": {
+    "contrast": "All text must pass WCAG AA. Orange #FF5A00 against white passes for large text, but for body text use #111111.",
+    "testing": "All interactive elements MUST include data-testid. Example: data-testid='search-input', data-testid='store-card-whatsapp-button'."
+  },
+  "media": {
+    "images": "NO PRODUCT PHOTOS as per requirements. Stores can use Avatar components (Initials) to keep the UI purely typographic and clean."
+  },
+  "image_urls": {},
+  "3d_libraries": {
+    "usage": "NONE. This is a hyper-fast, objective local search tool. 3D would violate the 'simples, rápido e objetivo' constraint."
+  },
+  "instructions_to_main_agent": [
+    "1. STRICT: Do not build an e-commerce, marketplace, or feed. This is a local directory search MVP.",
+    "2. The homepage must be extremely clean (Google-style): Logo, Title, Slogan, Central Search Bar, Search Button, Subtext. Nothing else.",
+    "3. Ensure the mobile experience is flawless (mobile-first). Inputs should not zoom on focus in iOS (ensure text size is 16px+).",
+    "4. WhatsApp and Instagram buttons should use <a> tags with target='_blank' and proper href formats (wa.me/... or instagram.com/...).",
+    "5. The Admin panel is a simple CRUD for stores and products, protected by a basic login.",
+    "6. Use Tailwind and Shadcn UI. Override Shadcn default styling to match the flat, #FF5A00 orange theme with generous border-radius (rounded-2xl).",
+    "7. Implement light mode ONLY. The user explicitly requested 'Fundo branco' and minimal elements."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Do not apply `transition: all`. Use specific transitions like `transition-colors` or `transition-transform`.",
+    "Do not center align the app container in CSS. Left-align text by default, center ONLY the homepage search section.",
+    "Every interaction needs a micro-animation (hover state, active state scale).",
+    "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  ]
+}
