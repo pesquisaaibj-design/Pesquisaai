@@ -424,12 +424,28 @@ async def delete_store(store_id: str, current=Depends(get_current_user)):
 
 app.include_router(api_router)
 
+# ---------- CORS ----------
+# Production frontend lives on Netlify. Keep it explicitly allowed so browser
+# uploads (multipart/form-data + Authorization) can reach the Render API.
+def _cors_origins():
+    defaults = [
+        "https://pesquisaaibj.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
+    configured = os.environ.get("CORS_ORIGINS", "")
+    extra = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip() and origin.strip() != "*"]
+    return list(dict.fromkeys(defaults + extra))
+
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=_cors_origins(),
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400,
 )
 
 
