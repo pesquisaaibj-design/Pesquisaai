@@ -12,15 +12,24 @@ export default function SearchResults() {
   const [q, setQ] = useState(query);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setQ(query);
     setLoading(true);
+    setError("");
+    const controller = new AbortController();
     api
-      .get(`/search`, { params: { q: query } })
-      .then((res) => setResults(res.data.results || []))
-      .catch(() => setResults([]))
+      .get(`/search`, { params: { q: query }, signal: controller.signal, timeout: 15000 })
+      .then((res) => setResults(Array.isArray(res.data?.results) ? res.data.results : []))
+      .catch((err) => {
+        if (err.code === "ERR_CANCELED") return;
+        setResults([]);
+        const detail = err.response?.data?.detail;
+        setError(typeof detail === "string" ? detail : "Não foi possível carregar a busca. Tente novamente.");
+      })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [query]);
 
   const submit = (e) => {
@@ -63,6 +72,18 @@ export default function SearchResults() {
             {[0, 1, 2].map((i) => (
               <div key={i} className="h-40 animate-pulse rounded-2xl bg-[#FAFAFA]" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5 text-center">
+            <p className="font-display font-semibold text-red-700">Erro ao carregar os produtos</p>
+            <p className="mt-1 text-sm text-red-600">{error}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Tentar novamente
+            </button>
           </div>
         ) : results.length === 0 ? (
           <div

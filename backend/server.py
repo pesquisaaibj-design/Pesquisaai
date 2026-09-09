@@ -20,6 +20,7 @@ import bcrypt
 import jwt
 import requests
 from datetime import datetime, timezone, timedelta
+from bson.binary import Binary
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -218,18 +219,42 @@ def token_matches_text(qtoken: str, text_tokens) -> bool:
     return False
 
 
+def product_to_dict(product, index: int = 0) -> dict:
+    """Accept both the current product object format and legacy string products."""
+    if isinstance(product, dict):
+        name = str(product.get("name", "") or "").strip()
+        return {
+            **product,
+            "id": product.get("id") or f"legacy-{index}",
+            "name": name,
+            "category": str(product.get("category", "") or ""),
+        }
+    name = str(product or "").strip()
+    return {"id": f"legacy-{index}", "name": name, "category": ""}
+
+
+def normalized_products(store: dict) -> list:
+    raw = store.get("products") or []
+    if not isinstance(raw, list):
+        raw = [raw]
+    return [product_to_dict(p, i) for i, p in enumerate(raw) if str(p or "").strip()]
+
+
 def score_store(store: dict, qtokens):
+    products = normalized_products(store)
     haystack = " ".join([
-        store.get("name", ""),
-        store.get("description", ""),
-        store.get("category", ""),
-        " ".join(p.get("name", "") for p in store.get("products", [])),
+        str(store.get("name", "") or ""),
+        str(store.get("description", "") or ""),
+        str(store.get("category", "") or ""),
+        " ".join(p.get("name", "") for p in products),
+        " ".join(p.get("category", "") for p in products),
     ])
     text_tokens = normalize(haystack).split()
 
     matched_products = []
-    for p in store.get("products", []):
-        p_tokens = normalize(p.get("name", "")).split()
+    for p in products:
+        # Search both product name and product category.
+        p_tokens = normalize(f"{p.get('name', '')} {p.get('category', '')}").split()
         if all(token_matches_text(qt, p_tokens) for qt in qtokens):
             matched_products.append(p)
 
@@ -257,6 +282,8 @@ async def root():
 @api_router.get("/stores")
 async def list_stores():
     stores = await db.stores.find({}, {"_id": 0}).to_list(1000)
+    for store in stores:
+        store["products"] = normalized_products(store)
     stores.sort(key=lambda s: (not s.get("isPartner"), s.get("name", "")))
     return stores
 
@@ -266,6 +293,7 @@ async def get_store(store_id: str):
     store = await db.stores.find_one({"id": store_id}, {"_id": 0})
     if not store:
         raise HTTPException(status_code=404, detail="Loja não encontrada")
+    store["products"] = normalized_products(store)
     return store
 
 
@@ -283,6 +311,7 @@ async def search(q: str = ""):
         score, matched_products, all_match = score_store(store, qtokens)
         if score > 0 and (matched_products or all_match):
             store_copy = dict(store)
+            store_copy["products"] = normalized_products(store)
             store_copy["matched_products"] = matched_products
             store_copy["_score"] = score
             results.append(store_copy)
@@ -311,34 +340,58 @@ async def me(current=Depends(get_current_user)):
 # ---------- File upload / serve ----------
 @api_router.post("/admin/upload")
 async def upload_image(file: UploadFile = File(...), current=Depends(get_current_user)):
-    ext = (file.filename.rsplit(".", 1)[-1] if "." in file.filename else "bin").lower()
+    filename = file.filename or "imagem"
+    ext = (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
+    content_type = (file.content_type or "").lower()
+
+    # Browsers/phones sometimes send a generic extension, so accept a known image MIME too.
+    mime_to_ext = {v: k for k, v in MIME_TYPES.items()}
+    if ext not in MIME_TYPES and content_type in mime_to_ext:
+        ext = mime_to_ext[content_type]
     if ext not in MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Formato de imagem não suportado")
+        raise HTTPException(status_code=400, detail="Formato de imagem não suportado. Use JPG, PNG, GIF ou WEBP")
+
     data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="A imagem está vazia")
     if len(data) > 8 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Imagem muito grande (máx 8MB)")
-    path = f"{APP_NAME}/stores/{uuid.uuid4()}.{ext}"
+
+    file_id = str(uuid.uuid4())
     content_type = MIME_TYPES[ext]
-    result = put_object(path, data, content_type)
+
+    # Store directly in MongoDB. This removes the production dependency on the
+    # Emergent object-storage token, which is commonly unavailable on Render.
+    # The 8 MB limit is safely below MongoDB's 16 MB document limit.
     await db.files.insert_one({
-        "id": str(uuid.uuid4()),
-        "storage_path": result["path"],
-        "original_filename": file.filename,
+        "id": file_id,
+        "data": Binary(data),
+        "original_filename": filename,
         "content_type": content_type,
-        "size": result.get("size", len(data)),
+        "size": len(data),
         "is_deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    return {"url": f"/api/files/{result['path']}"}
+    return {"url": f"/api/files/{file_id}"}
 
 
 @api_router.get("/files/{path:path}")
 async def serve_file(path: str):
-    record = await db.files.find_one({"storage_path": path, "is_deleted": False})
-    if not record:
+    # New uploads are addressed by their Mongo file id.
+    record = await db.files.find_one({"id": path, "is_deleted": False})
+    if record and record.get("data") is not None:
+        return Response(content=bytes(record["data"]), media_type=record.get("content_type", "application/octet-stream"))
+
+    # Backwards compatibility for photos previously uploaded to Emergent storage.
+    legacy = await db.files.find_one({"storage_path": path, "is_deleted": False})
+    if not legacy:
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
-    data, content_type = get_object(path)
-    return Response(content=data, media_type=record.get("content_type", content_type))
+    try:
+        data, content_type = get_object(path)
+    except Exception:
+        logger.exception("Falha ao carregar arquivo legado %s", path)
+        raise HTTPException(status_code=502, detail="Não foi possível carregar esta imagem antiga")
+    return Response(content=data, media_type=legacy.get("content_type", content_type))
 
 
 # ---------- Admin routes ----------

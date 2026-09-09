@@ -85,13 +85,25 @@ function StoreForm({ initial, onClose, onSaved }) {
   const uploadPhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type?.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 8MB)");
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     const fd = new FormData();
-    fd.append("file", file);
+    fd.append("file", file, file.name);
     try {
-      const { data } = await api.post("/admin/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // Do not set Content-Type manually: Axios/browser must add the multipart boundary.
+      const { data } = await api.post("/admin/upload", fd);
+      if (!data?.url) throw new Error("Resposta de upload sem URL");
       setForm((f) => ({ ...f, photo_url: data.url }));
       toast.success("Foto enviada");
     } catch (err) {
@@ -99,6 +111,7 @@ function StoreForm({ initial, onClose, onSaved }) {
       toast.error(typeof detail === "string" ? detail : "Erro ao enviar foto");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 

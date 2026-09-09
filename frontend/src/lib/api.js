@@ -1,11 +1,16 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const rawBackendUrl = (process.env.REACT_APP_BACKEND_URL || "").trim();
+// In production REACT_APP_BACKEND_URL should point to the Render backend.
+// Falling back to the current origin avoids generating "undefined/api" URLs.
+const BACKEND_URL = rawBackendUrl.replace(/\/$/, "") || window.location.origin;
 export const API = `${BACKEND_URL}/api`;
 
 export function photoSrc(url) {
   if (!url) return "";
-  return url.startsWith("http") ? url : `${BACKEND_URL}${url}`;
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:") || url.startsWith("blob:")) return url;
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_URL}${path}`;
 }
 
 export const api = axios.create({ baseURL: API });
