@@ -5,6 +5,48 @@ import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { StoreCard } from "@/components/StoreCard";
 
+function normalizeText(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function productObject(product, index) {
+  if (product && typeof product === "object") {
+    return {
+      ...product,
+      id: product.id || `legacy-${index}`,
+      name: String(product.name || ""),
+      category: String(product.category || ""),
+    };
+  }
+  return { id: `legacy-${index}`, name: String(product || ""), category: "" };
+}
+
+function filterStoresLocally(stores, query) {
+  const tokens = normalizeText(query).split(/\s+/).filter(Boolean);
+  if (!tokens.length) return [];
+
+  return (Array.isArray(stores) ? stores : [])
+    .map((store) => {
+      const products = (Array.isArray(store.products) ? store.products : [])
+        .map(productObject)
+        .filter((p) => p.name);
+      const matchedProducts = products.filter((p) => {
+        const text = normalizeText(`${p.name} ${p.category}`);
+        return tokens.every((token) => text.includes(token));
+      });
+      const storeText = normalizeText(`${store.name || ""} ${store.description || ""} ${store.category || ""}`);
+      const storeMatches = tokens.every((token) => storeText.includes(token));
+      if (!matchedProducts.length && !storeMatches) return null;
+      return { ...store, products, matched_products: matchedProducts };
+    })
+    .filter(Boolean)
+    .sort((a, b) => Number(Boolean(b.isPartner)) - Number(Boolean(a.isPartner)));
+}
+
 export default function SearchResults() {
   const [params] = useSearchParams();
   const query = params.get("q") || "";
@@ -19,9 +61,15 @@ export default function SearchResults() {
     setLoading(true);
     setError("");
     const controller = new AbortController();
+    // The admin already reads /stores successfully. Use that same public source here
+    // and filter on the client, so the public search cannot get out of sync with
+    // a separately deployed /search endpoint.
     api
-      .get(`/search`, { params: { q: query }, signal: controller.signal, timeout: 15000 })
-      .then((res) => setResults(Array.isArray(res.data?.results) ? res.data.results : []))
+      .get(`/stores`, { signal: controller.signal, timeout: 15000 })
+      .then((res) => {
+        const stores = Array.isArray(res.data) ? res.data : [];
+        setResults(filterStoresLocally(stores, query));
+      })
       .catch((err) => {
         if (err.code === "ERR_CANCELED") return;
         setResults([]);

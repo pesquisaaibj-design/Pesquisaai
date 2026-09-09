@@ -1,0 +1,15 @@
+CORREÇÃO DA BUSCA PÚBLICA
+
+Problema encontrado:
+- O painel admin carregava as lojas pelo endpoint /api/stores.
+- A página pública de busca usava outro endpoint, /api/search.
+- Isso permitia que os produtos aparecessem no admin, mas a busca pública ficasse vazia ou quebrasse quando o endpoint /search do backend implantado estivesse desatualizado.
+
+Correção aplicada:
+- SearchResults.jsx agora carrega /api/stores, a mesma fonte pública usada pelo admin.
+- A filtragem de nome/categoria/produtos é feita no frontend.
+- Produtos em formato objeto e legado/texto são aceitos.
+- Acentos e maiúsculas/minúsculas são normalizados na pesquisa.
+
+Arquivo alterado:
+frontend/src/pages/SearchResults.jsx
